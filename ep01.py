@@ -27,14 +27,17 @@ vertices = [-0.5, -0.5, 0.0,
             0.0, 0.5, 0.0]
 
 colors = [1.0, 0.0, 0.0,
-          0.0, -0.5, 0.0,
-          0.0, 0.5, 0.0]
+          0.0, 1.0, 0.0,
+          0.0, 0.0, 1.0]
 
 vertices = np.array(vertices, dtype=np.float32)
 colors = np.array(colors, dtype=np.float32)
 
 glEnableClientState(GL_VERTEX_ARRAY) 
 glVertexPointer(3, GL_FLOAT, 0, vertices)
+
+glEnableClientState(GL_COLOR_ARRAY)
+glColorPointer(3, GL_FLOAT, 0, colors)
 
 glClearColor(0, 0.1, 0.1, 1)
 
