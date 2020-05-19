@@ -1,117 +1,80 @@
 import glfw
 from OpenGL.GL import *
-import OpenGL.GL.shaders
+from OpenGL.GL.shaders import compileProgram, compileShader
 import numpy as np
 
+vertex_src = """
+# version 330
+in vec3 a_position;
+in vec3 a_color;
+out vec3 v_color;
+void main()
+{
+    gl_Position = vec4(a_position, 1.0);
+    v_color = a_color;
+}
+"""
 
-def main():
-    if not glfw.init():
-        return
+fragment_src = """
+# version 330
+in vec3 v_color;
+out vec4 out_color;
+void main()
+{
+    out_color = vec4(v_color, 1.0);
+}
+"""
 
-    window = glfw.create_window(
-        720, 600, "Pyopengl Drawing Rectangle", None, None)
+# initializing glfw library
+if not glfw.init():
+    raise Exception("glfw can not be initialized!")
 
-    if not window:
-        glfw.terminate()
-        return
+# creating the window
+window = glfw.create_window(1280, 720, "My OpenGL window", None, None)
 
-    glfw.make_context_current(window)
-
-    # Positions          # Colors
-    rectangle = [-0.5, -0.5, 0.0,    1.00, 0.11, 0.68,
-                 0.5, -0.5, 0.0,     1.00, 0.11, 0.68,
-                 0.5, 0.5, 0.0,      1.00, 0.11, 0.68,
-                 -0.5, 0.5, 0.0,     1.00, 0.11, 0.68]
-
-    # convert to 32bit float
-
-    rectangle = np.array(rectangle, dtype=np.float32)
-
-    # Creating Indices
-
-    indices = [0, 1, 2,
-               2, 3, 0]
-
-    indices = np.array(indices, dtype=np.uint32)
-
-    VERTEX_SHADER = """
- 
-        #version 330
- 
-        in vec3 position;
-        in vec3 color;
-        out vec3 newColor;
- 
-        void main() {
- 
-         gl_Position = vec4(position, 1.0);
-         newColor = color;
- 
-          }
- 
- 
-    """
-
-    FRAGMENT_SHADER = """
-        #version 330
- 
-        in vec3 newColor;
-        out vec4 outColor;
- 
-        void main() {
- 
-          outColor = vec4(newColor, 1.0f);
- 
-        }
- 
-    """
-
-    # Compile The Program and shaders
-
-    shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(VERTEX_SHADER, GL_VERTEX_SHADER),
-                                              OpenGL.GL.shaders.compileShader(FRAGMENT_SHADER, GL_FRAGMENT_SHADER))
-
-    # Create Buffer object in gpu
-    VBO = glGenBuffers(1)
-
-    # Create EBO
-    EBO = glGenBuffers(1)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW)
-
-    # Bind the buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO)
-    glBufferData(GL_ARRAY_BUFFER, 96, rectangle, GL_STATIC_DRAW)
-
-    # get the position from  shader
-    position = glGetAttribLocation(shader, 'position')
-    glVertexAttribPointer(position, 3, GL_FLOAT,
-                          GL_FALSE, 24, ctypes.c_void_p(0))
-    glEnableVertexAttribArray(position)
-
-    # get the color from  shader
-    color = glGetAttribLocation(shader, 'color')
-    glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE,
-                          24, ctypes.c_void_p(12))
-    glEnableVertexAttribArray(color)
-
-    glUseProgram(shader)
-
-    glClearColor(0, 0.1, 0.1, 1)
-
-    while not glfw.window_should_close(window):
-        glfw.poll_events()
-
-        glClear(GL_COLOR_BUFFER_BIT)
-
-        # Draw Triangle
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,  None)
-
-        glfw.swap_buffers(window)
-
+# check if window was created
+if not window:
     glfw.terminate()
+    raise Exception("glfw window can not be created!")
 
+# set window's position
+glfw.set_window_pos(window, 400, 200)
 
-if __name__ == "__main__":
-    main()
+# make the context current
+glfw.make_context_current(window)
+
+vertices = [-0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
+             0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
+             0.0,  0.5, 0.0, 0.0, 0.0, 1.0]
+
+vertices = np.array(vertices, dtype=np.float32)
+
+shader = compileProgram(compileShader(vertex_src, GL_VERTEX_SHADER), compileShader(fragment_src, GL_FRAGMENT_SHADER))
+
+VBO = glGenBuffers(1)
+glBindBuffer(GL_ARRAY_BUFFER, VBO)
+glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
+position = glGetAttribLocation(shader, "a_position")
+glEnableVertexAttribArray(position)
+glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(0))
+
+color = glGetAttribLocation(shader, "a_color")
+glEnableVertexAttribArray(color)
+glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(12))
+
+glUseProgram(shader)
+glClearColor(0, 0.1, 0.1, 1)
+
+# the main application loop
+while not glfw.window_should_close(window):
+    glfw.poll_events()
+
+    glClear(GL_COLOR_BUFFER_BIT)
+
+    glDrawArrays(GL_TRIANGLES, 0, 3)
+
+    glfw.swap_buffers(window)
+
+# terminate glfw, free up allocated resources
+glfw.terminate()
